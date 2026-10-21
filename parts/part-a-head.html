@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI进入执行，组织如何重新进化？｜高佳</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   视觉系统：Editorial / Cinematic / Minimal
+   暖白 #F6F4EF · 深海军蓝 #172A3A · 墨灰 #20252A
+   中性灰 #79818A · 青绿 #5B807E · 灰紫 #8D88A9 · 赭 #A8663F(仅警示)
+   图形编码（全册一致）：○人  ◻Agent  ⬡系统  ◎目标
+   连接：虚线=上下文  实线=任务流  箭头=控制权  青色曲线=反馈
+   ============================================================ */
+:root{
+  --paper:#F6F4EF; --paper2:#EFECE2; --navy:#172A3A; --navy2:#0F1D2A;
+  --ink:#20252A; --gray:#79818A; --teal:#5B807E; --violet:#8D88A9; --rust:#A8663F;
+  --line:rgba(23,42,58,.20); --line-soft:rgba(23,42,58,.09);
+  --serif:'Noto Serif SC','Songti SC','SimSun',serif;
+  --sans:'Noto Sans SC','PingFang SC','Microsoft YaHei','Source Han Sans SC',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:#0B1218; overflow:hidden;
+  font-family:var(--sans); color:var(--ink);
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+::selection{background:rgba(91,128,126,.35)}
+
+/* ---------- 舞台（16:9 固定画幅，等比缩放居中） ---------- */
+.stage{
+  position:fixed; left:50%; top:50%;
+  width:1920px; height:1080px;
+  transform-origin:center center;
+  background:var(--paper);
+}
+.deck{position:absolute;inset:0}
+
+/* ---------- 幻灯片基座 ---------- */
+.slide{
+  position:absolute; inset:0; width:1920px; height:1080px;
+  background:var(--paper); color:var(--ink);
+  opacity:0; visibility:hidden;
+  transition:opacity .55s ease, visibility 0s linear .55s;
+  overflow:hidden;
+}
+.slide.active{opacity:1;visibility:visible;transition:opacity .55s ease}
+.slide.dark{background:var(--navy);color:var(--paper)}
+.slide.dark.deep{background:var(--navy2)}
+
+/* ---------- 页面注入 chrome（kicker / 页码 / 页脚） ---------- */
+.chrome{position:absolute;inset:0;pointer-events:none;z-index:9}
+.chrome .ck{
+  position:absolute;top:64px;left:120px;
+  font:500 21px/1 var(--sans); letter-spacing:.42em; color:var(--gray);
+}
+.chrome .cp{
+  position:absolute;bottom:56px;right:120px;
+  font:500 22px/1 var(--sans); letter-spacing:.14em; color:var(--gray);
+}
+.chrome .cp b{color:var(--ink);font-weight:700}
+.chrome .cf{
+  position:absolute;bottom:56px;left:120px;
+  font:400 20px/1 var(--sans); letter-spacing:.18em; color:var(--gray);
+}
+.dark .chrome .ck,.dark .chrome .cp,.dark .chrome .cf{color:rgba(246,244,239,.5)}
+.dark .chrome .cp b{color:var(--paper)}
+
+/* ---------- 排版 ---------- */
+.kicker{font:500 23px/1 var(--sans);letter-spacing:.42em;color:var(--gray)}
+.title{font:700 52px/1.32 var(--sans);letter-spacing:.015em;color:var(--ink)}
+.title.serif{font:900 56px/1.34 var(--serif);letter-spacing:.02em}
+.title.sm{font-size:44px}
+.sub{font:400 29px/1.75 var(--sans);color:#5a6470;max-width:1280px}
+.dark .sub{color:rgba(246,244,239,.66)}
+.body{font:400 30px/1.85 var(--sans);color:var(--ink)}
+.lead{font:300 34px/1.8 var(--sans);color:var(--ink)}
+.idea{font:900 82px/1.4 var(--serif);letter-spacing:.03em;color:var(--ink)}
+.dark .idea{color:var(--paper)}
+.small{font:400 24px/1.7 var(--sans);color:var(--gray)}
+.src{font:400 20px/1.6 var(--sans);color:#8d94a0;letter-spacing:.05em}
+.num-serif{font:700 1em/1 var(--serif)}
+.accent{color:var(--teal)} .rust{color:var(--rust)}
+.hairline{border:none;border-top:1px solid var(--line)}
+.dark .hairline{border-top-color:rgba(246,244,239,.18)}
+
+/* ---------- 分步揭示 ---------- */
+[data-step]{opacity:0;transform:translateY(18px);
+  transition:opacity .8s cubic-bezier(.22,.61,.36,1),transform .8s cubic-bezier(.22,.61,.36,1)}
+[data-step].on{opacity:1;transform:none}
+svg [data-step]{transform:none}
+.flow{stroke-dasharray:1;stroke-dashoffset:1;transition:stroke-dashoffset 1.15s ease .12s}
+[data-step].on .flow,.slide.active [data-step="1"].stays .flow{stroke-dashoffset:0}
+
+/* ---------- 占位框（真实素材位） ---------- */
+.ph{position:relative;border:1px solid var(--line);background:
+    repeating-linear-gradient(135deg,transparent 0 26px,rgba(23,42,58,.045) 26px 28px);
+    display:flex;flex-direction:column;justify-content:center;align-items:center;gap:14px}
+.ph .tag{font:500 21px/1 var(--sans);letter-spacing:.5em;color:var(--gray);
+  border:1px solid var(--line);padding:10px 18px 10px 26px;background:var(--paper)}
+.ph .desc{font:400 23px/1.7 var(--sans);color:var(--gray);text-align:center;max-width:80%}
+.ph::before,.ph::after{content:'';position:absolute;width:26px;height:26px;border-color:var(--gray);border-style:solid}
+.ph::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.ph::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.dark .ph{background:repeating-linear-gradient(135deg,transparent 0 26px,rgba(246,244,239,.05) 26px 28px);
+  border-color:rgba(246,244,239,.22)}
+.dark .ph .tag{background:transparent;color:rgba(246,244,239,.55);border-color:rgba(246,244,239,.25)}
+.dark .ph .desc{color:rgba(246,244,239,.55)}
+.dark .ph::before,.dark .ph::after{border-color:rgba(246,244,239,.4)}
+
+/* ---------- 组件 ---------- */
+.chip{display:inline-flex;align-items:center;gap:14px;font:500 25px/1 var(--sans);
+  padding:16px 26px;border:1px solid var(--line);letter-spacing:.12em;color:var(--ink)}
+.chip i{width:12px;height:12px;border-radius:50%;background:var(--teal);display:inline-block}
+.chips{display:flex;gap:22px;flex-wrap:wrap}
+.legend{display:flex;gap:34px;align-items:center;font:400 21px/1 var(--sans);color:var(--gray)}
+.legend svg{display:block}
+.qnum{font:700 30px/1 var(--serif);color:var(--gray);letter-spacing:.05em}
+.bignum{font:900 210px/1 var(--serif);color:var(--ink);letter-spacing:.01em}
+.dark .bignum{color:var(--paper)}
+.word-def{display:flex;gap:26px;align-items:baseline}
+.word-def .w{font:900 42px/1.2 var(--serif);color:var(--ink);min-width:150px}
+.word-def .d{font:400 27px/1.65 var(--sans);color:#5a6470}
+.dark .word-def .w{color:var(--paper)} .dark .word-def .d{color:rgba(246,244,239,.66)}
+
+/* ---------- SVG 图形编码 ---------- */
+svg text{font-family:var(--sans)}
+.sv-hd{font-size:26px;font-weight:700;fill:var(--ink)}
+.sv-lb{font-size:22px;font-weight:500;fill:#4a545f}
+.sv-lt{font-size:20px;font-weight:400;fill:var(--gray)}
+.dark .sv-hd{fill:var(--paper)} .dark .sv-lb{fill:rgba(246,244,239,.85)} .dark .sv-lt{fill:rgba(246,244,239,.55)}
+.np{fill:#FDFCF8;stroke:var(--ink);stroke-width:3}
+.na{fill:var(--teal)}
+.ns{fill:rgba(141,136,169,.13);stroke:var(--violet);stroke-width:2.5}
+.ng{fill:none;stroke:var(--navy);stroke-width:3.5}
+.ngc{fill:var(--navy)}
+.dark .np{fill:#1d2f40;stroke:#F6F4EF}
+.dark .na{fill:var(--teal)}
+.dark .ns{fill:rgba(141,136,169,.16);stroke:var(--violet)}
+.dark .ng{stroke:#F6F4EF} .dark .ngc{fill:#F6F4EF}
+.lc-ctx{stroke:#9aa1a8;stroke-width:2.2;stroke-dasharray:2 10;stroke-linecap:round;fill:none}
+.lc-task{stroke:#20252A;stroke-width:2.4;fill:none}
+.lc-ctrl{stroke:var(--navy);stroke-width:2.6;fill:none}
+.lc-fb{stroke:var(--teal);stroke-width:2.8;fill:none}
+.lc-dead{stroke:#c6c1b4;stroke-width:2;stroke-dasharray:2 8;stroke-linecap:round;fill:none}
+.lc-jam{stroke:var(--rust);stroke-width:3.2;stroke-dasharray:16 9;stroke-linecap:round;fill:none}
+.dark .lc-ctx{stroke:#5d6b78}
+.dark .lc-task{stroke:#e8e4d8}
+.dark .lc-ctrl{stroke:#F6F4EF}
+.dark .lc-dead{stroke:#3b4c5d}
+
+/* ---------- 顶部进度细线 / 备注 / 控制提示 ---------- */
+.progress{position:fixed;left:0;top:0;height:3px;background:var(--teal);width:0;z-index:60;
+  transition:width .4s ease;opacity:.9}
+.hud{position:fixed;right:20px;bottom:14px;z-index:60;font:400 16px/1 var(--sans);
+  color:rgba(246,244,239,.42);letter-spacing:.08em;user-select:none}
+.notes-panel{position:fixed;left:0;right:0;bottom:0;z-index:70;max-height:34vh;
+  background:#101821;color:#dfe5ea;border-top:1px solid rgba(246,244,239,.16);
+  transform:translateY(102%);transition:transform .35s ease;padding:26px 48px 30px;
+  overflow:auto}
+.notes-panel.open{transform:none}
+.notes-panel h4{font:700 18px/1 var(--sans);letter-spacing:.3em;color:#8fb8b4;margin-bottom:14px}
+.notes-panel p{font:400 19px/1.75 var(--sans);white-space:pre-line;max-width:1200px}
+
+/* ---------- 总览模式（按 O） ---------- */
+html.ovh body{overflow:auto;background:#0E151D}
+html.ovh .stage{position:static;transform:none !important;width:auto;height:auto;background:transparent}
+html.ovh .deck{display:block;padding:56px}
+html.ovh .slide{position:relative;zoom:.298;opacity:1 !important;visibility:visible !important;
+  margin:0 0 34px;outline:1px solid rgba(246,244,239,.14);outline-offset:0;cursor:pointer;
+  transition:none}
+html.ovh .slide:hover{outline:2px solid var(--teal)}
+html.ovh [data-step]{opacity:1 !important;transform:none !important}
+html.ovh .notes-panel,html.ovh .hud{display:none}
+
+/* ---------- 打印 / 导出 PDF ---------- */
+@media print{
+  body{overflow:visible;background:#fff}
+  .stage{position:static;transform:none !important;width:auto;height:auto;background:#fff}
+  .deck{position:static}
+  .slide{position:relative;inset:auto;opacity:1 !important;visibility:visible !important;
+    page-break-after:always;break-after:page;margin:0}
+  [data-step]{opacity:1 !important;transform:none !important}
+  .flow{stroke-dashoffset:0 !important}
+  .progress,.hud,.notes-panel{display:none !important}
+}
+@page{size:1920px 1080px;margin:0}
+</style>
+</head>
+<body>
+
+<!-- 全局 SVG 箭头 / 节点符号定义 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+<defs>
+  <marker id="m-ink"  viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#20252A"/></marker>
+  <marker id="m-navy" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#172A3A"/></marker>
+  <marker id="m-teal" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#5B807E"/></marker>
+  <marker id="m-rust" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#A8663F"/></marker>
+  <marker id="m-gray" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#79818A"/></marker>
+  <marker id="m-paper" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#F6F4EF"/></marker>
+  <marker id="m-violet" viewBox="0 0 10 10" refX="8.5" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#8D88A9"/></marker>
+  <!-- 人 ○ -->
+  <symbol id="nd-p" viewBox="-20 -20 40 40"><circle class="np" r="15"/></symbol>
+  <!-- Agent ◻ -->
+  <symbol id="nd-a" viewBox="-20 -20 40 40"><rect class="na" x="-15" y="-15" width="30" height="30" rx="8"/></symbol>
+  <!-- 系统 ⬡ -->
+  <symbol id="nd-s" viewBox="-24 -24 48 48"><path class="ns" d="M0 -17 L15 -8.5 L15 8.5 L0 17 L-15 8.5 L-15 -8.5 Z"/></symbol>
+  <!-- 目标 ◎ -->
+  <symbol id="nd-g" viewBox="-44 -44 88 88"><circle class="ng" r="32"/><circle class="ngc" r="8"/></symbol>
+</defs>
+</svg>
+
+<div class="stage" id="stage">
+<main class="deck" id="deck">
